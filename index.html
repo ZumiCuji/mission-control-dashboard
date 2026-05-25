@@ -1,348 +1,520 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MISSION CONTROL — Planetary Defense System</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MISSION CONTROL ULTRA — Planetary Defense Grid</title>
 
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 
-  <style>
-    *{
-      margin:0;
-      padding:0;
-      box-sizing:border-box;
-    }
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
 
-    body{
-      background:#02030a;
-      color:#00ffcc;
-      font-family:'Courier New', monospace;
-      overflow-x:hidden;
-      min-height:100vh;
-      padding:20px;
-    }
+body{
+  background:#02030a;
+  color:#00ffcc;
+  font-family:'Courier New', monospace;
+  overflow-x:hidden;
+  min-height:100vh;
+  padding:20px;
+}
 
-    canvas#starfield{
-      position:fixed;
-      inset:0;
-      width:100%;
-      height:100%;
-      z-index:-3;
-    }
+canvas#starfield{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:-5;
+}
 
-    .nebula{
-      position:fixed;
-      inset:0;
-      z-index:-2;
-      background:
-        radial-gradient(circle at 20% 20%, rgba(0,255,255,0.08), transparent 30%),
-        radial-gradient(circle at 80% 10%, rgba(0,120,255,0.08), transparent 30%),
-        radial-gradient(circle at center, rgba(0,255,120,0.05), transparent 45%);
-      filter:blur(20px);
-    }
+.nebula{
+  position:fixed;
+  inset:0;
+  z-index:-4;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(0,255,255,0.08), transparent 30%),
+    radial-gradient(circle at 80% 10%, rgba(0,120,255,0.08), transparent 30%),
+    radial-gradient(circle at center, rgba(0,255,120,0.05), transparent 45%);
+  filter:blur(20px);
+}
 
-    h1{
-      text-align:center;
-      font-size:2.8rem;
-      margin-bottom:25px;
-      color:#00ffee;
-      text-shadow:
-        0 0 15px #00ffee,
-        0 0 40px rgba(0,255,255,0.6);
-      letter-spacing:5px;
-    }
+.aurora{
+  position:fixed;
+  inset:-20%;
+  z-index:-3;
+  background:
+    radial-gradient(circle at 30% 50%, rgba(0,255,170,0.08), transparent 25%),
+    radial-gradient(circle at 70% 30%, rgba(0,150,255,0.08), transparent 30%),
+    radial-gradient(circle at 50% 80%, rgba(140,0,255,0.06), transparent 35%);
+  animation:auroraMove 18s ease-in-out infinite alternate;
+  filter:blur(90px);
+}
 
-    h2{
-      color:#00bbff;
-      margin-bottom:15px;
-      font-size:1rem;
-      letter-spacing:2px;
-    }
+@keyframes auroraMove{
+  0%{transform:translate(-3%,-2%) scale(1);}
+  100%{transform:translate(3%,2%) scale(1.2);}
+}
 
-    .grid{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:20px;
-    }
+.scanlines{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(rgba(255,255,255,0.02) 50%, transparent 50%);
+  background-size:100% 4px;
+  opacity:0.12;
+  z-index:9999;
+}
 
-    .panel{
-      background:rgba(5,10,25,0.82);
-      border:1px solid rgba(0,255,255,0.15);
-      border-radius:16px;
-      padding:20px;
-      backdrop-filter:blur(14px);
-      box-shadow:
-        0 0 20px rgba(0,255,255,0.06),
-        inset 0 0 25px rgba(255,255,255,0.02);
-      overflow:hidden;
-    }
+#boot-screen{
+  position:fixed;
+  inset:0;
+  background:#000;
+  z-index:10000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  color:#00ff88;
+  font-size:1.2rem;
+  letter-spacing:3px;
+}
 
-    .full{
-      grid-column:1 / -1;
-    }
+.boot-line{
+  opacity:0;
+  margin:12px 0;
+  animation:bootFade 1s forwards;
+}
 
-    #globe-container{
-      width:100%;
-      height:620px;
-      border-radius:14px;
-      overflow:hidden;
-      position:relative;
-    }
+.boot-line:nth-child(1){animation-delay:0.5s;}
+.boot-line:nth-child(2){animation-delay:1.6s;}
+.boot-line:nth-child(3){animation-delay:2.7s;}
+.boot-line:nth-child(4){animation-delay:3.8s;}
 
-    .hud{
-      position:absolute;
-      top:15px;
-      left:15px;
-      z-index:20;
-      background:rgba(0,0,0,0.45);
-      border:1px solid rgba(0,255,255,0.2);
-      padding:14px;
-      border-radius:12px;
-      color:#00ffee;
-      min-width:240px;
-      backdrop-filter:blur(10px);
-    }
+@keyframes bootFade{
+  to{opacity:1;}
+}
 
-    .hud div{
-      margin:4px 0;
-    }
+h1{
+  text-align:center;
+  font-size:3rem;
+  margin-bottom:25px;
+  color:#00ffee;
+  text-shadow:
+    0 0 15px #00ffee,
+    0 0 40px rgba(0,255,255,0.6);
+  letter-spacing:6px;
+  animation:glowPulse 4s infinite;
+}
 
-    .threat-container{
-      margin-top:20px;
-    }
+@keyframes glowPulse{
+  0%,100%{filter:brightness(1);}
+  50%{filter:brightness(1.3);}
+}
 
-    .threat-bar{
-      height:24px;
-      width:100%;
-      background:#111827;
-      border-radius:20px;
-      overflow:hidden;
-      border:1px solid rgba(255,255,255,0.1);
-    }
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px;
+}
 
-    .threat-level{
-      height:100%;
-      width:0%;
-      background:linear-gradient(
-        90deg,
-        #00ff88,
-        #ffee00,
-        #ff3333
-      );
-      box-shadow:0 0 30px rgba(255,0,0,0.5);
-      transition:width 2s ease;
-      animation:pulse 1.2s infinite;
-    }
+.panel{
+  background:rgba(5,10,25,0.82);
+  border:1px solid rgba(0,255,255,0.15);
+  border-radius:18px;
+  padding:20px;
+  backdrop-filter:blur(16px);
+  box-shadow:
+    0 0 20px rgba(0,255,255,0.06),
+    inset 0 0 25px rgba(255,255,255,0.02);
+  overflow:hidden;
+  animation:fadeUp 1s ease;
+}
 
-    @keyframes pulse{
-      0%{filter:brightness(1);}
-      50%{filter:brightness(1.4);}
-      100%{filter:brightness(1);}
-    }
+@keyframes fadeUp{
+  from{
+    opacity:0;
+    transform:translateY(30px);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+}
 
-    .threat-label{
-      margin-top:10px;
-      color:#ccc;
-      font-size:0.9rem;
-    }
+.full{
+  grid-column:1 / -1;
+}
 
-    table{
-      width:100%;
-      border-collapse:collapse;
-      font-size:0.85rem;
-    }
+#globe-container{
+  width:100%;
+  height:720px;
+  border-radius:16px;
+  overflow:hidden;
+  position:relative;
+}
 
-    th{
-      color:#00bbff;
-      border-bottom:1px solid rgba(0,255,255,0.2);
-      padding:10px;
-      text-align:left;
-    }
+.hud{
+  position:absolute;
+  top:15px;
+  left:15px;
+  z-index:20;
+  background:rgba(0,0,0,0.45);
+  border:1px solid rgba(0,255,255,0.2);
+  padding:14px;
+  border-radius:12px;
+  color:#00ffee;
+  min-width:260px;
+  backdrop-filter:blur(10px);
+}
 
-    td{
-      padding:10px;
-      border-bottom:1px solid rgba(255,255,255,0.05);
-    }
+.hud div{
+  margin:6px 0;
+}
 
-    .hazardous{
-      color:#ff5555;
-      text-shadow:0 0 10px rgba(255,0,0,0.6);
-    }
+.lock-on{
+  position:absolute;
+  width:140px;
+  height:140px;
+  border:2px solid #ff3333;
+  border-radius:50%;
+  animation:spin 5s linear infinite;
+  box-shadow:
+    0 0 20px rgba(255,0,0,0.8),
+    inset 0 0 20px rgba(255,0,0,0.5);
+  pointer-events:none;
+  z-index:15;
+}
 
-    .safe{
-      color:#00ff88;
-    }
+@keyframes spin{
+  from{transform:rotate(0deg);}
+  to{transform:rotate(360deg);}
+}
 
-    .loading{
-      color:#888;
-      font-style:italic;
-    }
+#global-alert{
+  position:fixed;
+  top:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(255,0,0,0.08);
+  border:1px solid rgba(255,0,0,0.4);
+  color:#ff6666;
+  padding:12px 22px;
+  border-radius:16px;
+  z-index:9999;
+  font-weight:bold;
+  letter-spacing:3px;
+  animation:alertPulse 1.5s infinite;
+  backdrop-filter:blur(12px);
+}
 
-    .stats-row{
-      display:flex;
-      flex-wrap:wrap;
-      gap:15px;
-    }
+@keyframes alertPulse{
+  0%{opacity:0.7;}
+  50%{opacity:1;}
+  100%{opacity:0.7;}
+}
 
-    .stat-box{
-      flex:1;
-      min-width:120px;
-      text-align:center;
-      background:#081020;
-      border-radius:12px;
-      padding:15px;
-      border:1px solid rgba(0,255,255,0.08);
-    }
+.radar{
+  position:absolute;
+  right:20px;
+  bottom:20px;
+  width:220px;
+  height:220px;
+  border-radius:50%;
+  border:1px solid rgba(0,255,120,0.25);
+  overflow:hidden;
+  background:rgba(0,0,0,0.4);
+  z-index:20;
+}
 
-    .stat{
-      font-size:2rem;
-      color:#00ffee;
-      text-shadow:0 0 12px #00ffee;
-    }
+.radar::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:conic-gradient(
+    transparent,
+    rgba(0,255,120,0.25),
+    transparent 25%
+  );
+  animation:radar 4s linear infinite;
+}
 
-    .stat-label{
-      margin-top:6px;
-      font-size:0.8rem;
-      color:#888;
-    }
+@keyframes radar{
+  from{transform:rotate(0deg);}
+  to{transform:rotate(360deg);}
+}
 
-    .live-dot{
-      display:inline-block;
-      width:10px;
-      height:10px;
-      border-radius:50%;
-      background:#00ff88;
-      margin-right:8px;
-      box-shadow:0 0 12px #00ff88;
-      animation:blink 1s infinite;
-    }
+.radar-grid{
+  position:absolute;
+  inset:0;
+  border-radius:50%;
+  border:1px solid rgba(0,255,120,0.15);
+}
 
-    @keyframes blink{
-      0%,100%{opacity:1;}
-      50%{opacity:0.3;}
-    }
+.threat-container{
+  margin-top:20px;
+}
 
-    @media(max-width:950px){
-      .grid{
-        grid-template-columns:1fr;
-      }
+.threat-bar{
+  height:26px;
+  width:100%;
+  background:#111827;
+  border-radius:20px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,0.1);
+}
 
-      .full{
-        grid-column:1;
-      }
+.threat-level{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,#00ff88,#ffee00,#ff3333);
+  box-shadow:0 0 30px rgba(255,0,0,0.5);
+  transition:width 2s ease;
+  animation:pulse 1.2s infinite;
+}
 
-      #globe-container{
-        height:460px;
-      }
-    }
-  </style>
+@keyframes pulse{
+  0%{filter:brightness(1);}
+  50%{filter:brightness(1.4);}
+  100%{filter:brightness(1);}
+}
+
+.stats-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:15px;
+}
+
+.stat-box{
+  flex:1;
+  min-width:120px;
+  text-align:center;
+  background:#081020;
+  border-radius:12px;
+  padding:15px;
+  border:1px solid rgba(0,255,255,0.08);
+}
+
+.stat{
+  font-size:2rem;
+  color:#00ffee;
+  text-shadow:0 0 12px #00ffee;
+}
+
+.stat-label{
+  margin-top:6px;
+  font-size:0.8rem;
+  color:#888;
+}
+
+.live-dot{
+  display:inline-block;
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:#00ff88;
+  margin-right:8px;
+  box-shadow:0 0 12px #00ff88;
+  animation:blink 1s infinite;
+}
+
+@keyframes blink{
+  0%,100%{opacity:1;}
+  50%{opacity:0.3;}
+}
+
+#audio-btn{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:#07131f;
+  border:1px solid rgba(0,255,255,0.2);
+  color:#00ffee;
+  padding:14px 18px;
+  border-radius:14px;
+  cursor:pointer;
+  z-index:999;
+  backdrop-filter:blur(10px);
+}
+
+#audio-btn:hover{
+  transform:scale(1.05);
+  box-shadow:0 0 25px rgba(0,255,255,0.4);
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:0.85rem;
+}
+
+th{
+  color:#00bbff;
+  border-bottom:1px solid rgba(0,255,255,0.2);
+  padding:10px;
+  text-align:left;
+}
+
+td{
+  padding:10px;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+
+.hazardous{
+  color:#ff5555;
+}
+
+.safe{
+  color:#00ff88;
+}
+
+.loading{
+  color:#888;
+  font-style:italic;
+}
+
+@media(max-width:950px){
+  .grid{
+    grid-template-columns:1fr;
+  }
+
+  .full{
+    grid-column:1;
+  }
+
+  #globe-container{
+    height:520px;
+  }
+}
+</style>
 </head>
 <body>
 
+<div id="boot-screen">
+  <div class="boot-line">INITIALIZING SATELLITE ARRAY...</div>
+  <div class="boot-line">LINKING DEFENSE GRID...</div>
+  <div class="boot-line">SCANNING ORBITAL THREATS...</div>
+  <div class="boot-line">MISSION CONTROL ONLINE</div>
+</div>
+
 <canvas id="starfield"></canvas>
 <div class="nebula"></div>
+<div class="aurora"></div>
+<div class="scanlines"></div>
 
-<h1>⚡ MISSION CONTROL</h1>
+<div id="global-alert">⚠ ORBITAL DEFENSE SYSTEM ACTIVE</div>
+
+<h1>⚡ MISSION CONTROL ULTRA</h1>
 
 <div class="panel full">
 
-  <h2>🌍 PLANETARY DEFENSE VISUALIZATION</h2>
+<h2>🌍 PLANETARY DEFENSE VISUALIZATION</h2>
 
-  <div id="globe-container">
+<div id="globe-container">
 
-    <div class="hud">
-      <div>
-        <span class="live-dot"></span>
-        LIVE ORBITAL TRACKING
-      </div>
+<div class="hud">
+<div><span class="live-dot"></span>LIVE ORBITAL TRACKING</div>
+<div id="neo-count">Objects: --</div>
+<div id="hazard-count">Hazards: --</div>
+<div id="iss-position">ISS Position: Loading...</div>
+<div id="sat-count">Satellites: --</div>
+<div id="ai-prediction">AI Impact Prediction: --</div>
+</div>
 
-      <div id="neo-count">Objects: --</div>
-      <div id="hazard-count">Hazards: --</div>
-      <div id="iss-position">ISS Position: Loading...</div>
-      <div id="sat-count">Satellites: --</div>
-    </div>
+<div class="lock-on" id="lock-on"></div>
 
-  </div>
+<div class="radar">
+<div class="radar-grid"></div>
+</div>
 
-  <div class="threat-container">
-    <h2>☄️ ASTEROID THREAT METER</h2>
+</div>
 
-    <div class="threat-bar">
-      <div class="threat-level" id="threat-level"></div>
-    </div>
+<div class="threat-container">
+<h2>☄️ ASTEROID THREAT METER</h2>
 
-    <div class="threat-label" id="threat-text">
-      Calculating orbital threat matrix...
-    </div>
-  </div>
+<div class="threat-bar">
+<div class="threat-level" id="threat-level"></div>
+</div>
+
+<div id="threat-text" style="margin-top:10px;color:#aaa;">
+Calculating orbital threat matrix...
+</div>
+</div>
 
 </div>
 
 <div class="grid">
 
-  <div class="panel full">
+<div class="panel full">
+<h2>☄️ NEAR EARTH OBJECTS</h2>
+<table id="neo-table">
+<tr>
+<th>Name</th>
+<th>Date</th>
+<th>Diameter</th>
+<th>Velocity</th>
+<th>Miss Distance</th>
+<th>Status</th>
+</tr>
+</table>
+</div>
 
-    <h2>☄️ NEAR EARTH OBJECTS</h2>
+<div class="panel">
+<h2>🛰️ MARS WEATHER</h2>
+<div id="mars-stats" class="loading">Loading Mars telemetry...</div>
+<div id="mars-chart"></div>
+</div>
 
-    <table id="neo-table">
-      <tr>
-        <th>Name</th>
-        <th>Date</th>
-        <th>Diameter</th>
-        <th>Velocity</th>
-        <th>Miss Distance</th>
-        <th>Status</th>
-      </tr>
+<div class="panel">
+<h2>🚀 NEXT ROCKET LAUNCH</h2>
+<div id="launch-info" class="loading">Loading launch telemetry...</div>
+</div>
 
-      <tr>
-        <td colspan="6" class="loading">
-          Fetching asteroid telemetry...
-        </td>
-      </tr>
-    </table>
+<div class="panel">
+<h2>🌎 EARTHQUAKE ACTIVITY</h2>
+<table id="quake-table">
+<tr>
+<th>Magnitude</th>
+<th>Location</th>
+</tr>
+</table>
+</div>
 
-  </div>
-
-  <div class="panel">
-
-    <h2>🔴 MARS WEATHER</h2>
-
-    <div id="mars-stats" class="loading">
-      Fetching Mars atmospheric data...
-    </div>
-
-    <div id="mars-chart" style="margin-top:15px;"></div>
-
-  </div>
-
-  <div class="panel">
-
-    <h2>🛰️ TRACKED ORBITAL OBJECTS</h2>
-
-    <table id="sat-table">
-      <tr>
-        <th>#</th>
-        <th>Object Name</th>
-      </tr>
-
-      <tr>
-        <td colspan="2" class="loading">
-          Fetching orbital telemetry...
-        </td>
-      </tr>
-    </table>
-
-  </div>
+<div class="panel">
+<h2>🛰️ TRACKED ORBITAL OBJECTS</h2>
+<table id="sat-table">
+<tr>
+<th>#</th>
+<th>Object</th>
+</tr>
+</table>
+</div>
 
 </div>
 
+<button id="audio-btn">🔊 SYSTEM AUDIO</button>
+
+<audio id="ambience" loop>
+<source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_115b9bce13.mp3?filename=space-ambient-110624.mp3" type="audio/mpeg">
+</audio>
+
 <script>
 
-/* =========================================
-   STARFIELD
-========================================= */
+setTimeout(()=>{
+  document.getElementById('boot-screen').style.opacity='0';
+  document.getElementById('boot-screen').style.pointerEvents='none';
+
+  setTimeout(()=>{
+    document.getElementById('boot-screen').remove();
+  },1200);
+},5500);
+
+/* STARFIELD */
 
 const starCanvas = document.getElementById('starfield');
 const starCtx = starCanvas.getContext('2d');
@@ -356,7 +528,7 @@ function resizeStars(){
 
 resizeStars();
 
-for(let i=0;i<1000;i++){
+for(let i=0;i<1400;i++){
   stars.push({
     x:Math.random()*innerWidth,
     y:Math.random()*innerHeight,
@@ -366,12 +538,10 @@ for(let i=0;i<1000;i++){
 }
 
 function animateStars(){
-
   starCtx.clearRect(0,0,innerWidth,innerHeight);
 
   stars.forEach(s=>{
-
-    s.y += s.z * 0.3;
+    s.y += s.z*0.3;
 
     if(s.y > innerHeight){
       s.y = 0;
@@ -380,7 +550,6 @@ function animateStars(){
 
     starCtx.beginPath();
     starCtx.arc(s.x,s.y,s.size,0,Math.PI*2);
-
     starCtx.fillStyle = `rgba(255,255,255,${0.3+s.z/2})`;
     starCtx.fill();
   });
@@ -390,37 +559,38 @@ function animateStars(){
 
 animateStars();
 
-window.addEventListener('resize',resizeStars);
+/* MOUSE GLOW */
 
-/* =========================================
-   THREE.JS GLOBE
-========================================= */
+document.addEventListener('mousemove',e=>{
+  document.body.style.background = `
+    radial-gradient(circle at ${e.clientX}px ${e.clientY}px,
+    rgba(0,255,255,0.06),
+    #02030a 30%)
+  `;
+});
+
+/* THREEJS */
 
 const container = document.getElementById('globe-container');
 
 const scene = new THREE.Scene();
 
 const camera = new THREE.PerspectiveCamera(
-  55,
-  container.clientWidth/container.clientHeight,
-  0.1,
-  1000
+55,
+container.clientWidth/container.clientHeight,
+0.1,
+1000
 );
 
 camera.position.z = 4;
 
 const renderer = new THREE.WebGLRenderer({
-  antialias:true,
-  alpha:true
+antialias:true,
+alpha:true
 });
 
-renderer.setSize(
-  container.clientWidth,
-  container.clientHeight
-);
-
+renderer.setSize(container.clientWidth,container.clientHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
-
 container.appendChild(renderer.domElement);
 
 /* EARTH */
@@ -428,520 +598,552 @@ container.appendChild(renderer.domElement);
 const earthGeo = new THREE.SphereGeometry(1,64,64);
 
 const earthTexture = new THREE.TextureLoader().load(
-  'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'
+'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'
 );
 
 const earthMaterial = new THREE.MeshStandardMaterial({
-  map:earthTexture,
-  emissive:new THREE.Color(0x002244),
-  emissiveIntensity:0.5
+map:earthTexture,
+emissive:new THREE.Color(0x001122),
+emissiveIntensity:0.7,
+metalness:0.15,
+roughness:0.8
 });
 
-const earth = new THREE.Mesh(
-  earthGeo,
-  earthMaterial
-);
-
+const earth = new THREE.Mesh(earthGeo,earthMaterial);
 scene.add(earth);
 
-/* ATMOSPHERE */
+/* CLOUDS */
+
+const cloudTexture = new THREE.TextureLoader().load(
+'https://raw.githubusercontent.com/turban/webgl-earth/master/images/fair_clouds_4k.png'
+);
+
+const cloudGeo = new THREE.SphereGeometry(1.01,64,64);
+
+const cloudMat = new THREE.MeshPhongMaterial({
+map:cloudTexture,
+transparent:true,
+opacity:0.5
+});
+
+const clouds = new THREE.Mesh(cloudGeo,cloudMat);
+scene.add(clouds);
+
+/* MOON */
+
+const moonGeo = new THREE.SphereGeometry(0.27,32,32);
+const moonMat = new THREE.MeshStandardMaterial({
+color:0xaaaaaa
+});
+
+const moon = new THREE.Mesh(moonGeo,moonMat);
+scene.add(moon);
+
+/* GLOW */
 
 const glowGeo = new THREE.SphereGeometry(1.06,64,64);
-
 const glowMat = new THREE.MeshBasicMaterial({
-  color:0x00aaff,
-  transparent:true,
-  opacity:0.15
+color:0x00aaff,
+transparent:true,
+opacity:0.15
 });
 
 const glow = new THREE.Mesh(glowGeo,glowMat);
-
 scene.add(glow);
 
 /* LIGHTS */
 
 const light = new THREE.PointLight(0xffffff,2);
 light.position.set(5,3,5);
-
 scene.add(light);
 
-scene.add(
-  new THREE.AmbientLight(0x334455)
-);
+scene.add(new THREE.AmbientLight(0x334455));
 
-/* ORBITAL RINGS */
+/* RINGS */
 
 const orbitalRings = [];
 
 for(let i=0;i<4;i++){
 
-  const ringGeo = new THREE.TorusGeometry(
-    1.5 + i*0.18,
-    0.003,
-    16,
-    200
-  );
+const ringGeo = new THREE.TorusGeometry(
+1.5+i*0.18,
+0.003,
+16,
+200
+);
 
-  const ringMat = new THREE.MeshBasicMaterial({
-    color:i % 2 ? 0x00ffff : 0x00ff88,
-    transparent:true,
-    opacity:0.35
-  });
+const ringMat = new THREE.MeshBasicMaterial({
+color:i%2?0x00ffff:0x00ff88,
+transparent:true,
+opacity:0.35
+});
 
-  const ring = new THREE.Mesh(
-    ringGeo,
-    ringMat
-  );
+const ring = new THREE.Mesh(ringGeo,ringMat);
 
-  ring.rotation.x = Math.random()*Math.PI;
-  ring.rotation.y = Math.random()*Math.PI;
+ring.rotation.x = Math.random()*Math.PI;
+ring.rotation.y = Math.random()*Math.PI;
 
-  orbitalRings.push(ring);
-
-  scene.add(ring);
+orbitalRings.push(ring);
+scene.add(ring);
 }
 
-/* SATELLITE GROUP */
+/* GROUPS */
 
 const satelliteGroup = new THREE.Group();
 scene.add(satelliteGroup);
 
-/* ASTEROID GROUP */
-
 const asteroidGroup = new THREE.Group();
 scene.add(asteroidGroup);
-
-/* TRAJECTORY GROUP */
 
 const trajectoryGroup = new THREE.Group();
 scene.add(trajectoryGroup);
 
-/* LAT/LON TO 3D */
-
 function latLonToVector3(lat,lon,radius){
 
-  const phi = (90-lat)*(Math.PI/180);
-  const theta = (lon+180)*(Math.PI/180);
+const phi = (90-lat)*(Math.PI/180);
+const theta = (lon+180)*(Math.PI/180);
 
-  return new THREE.Vector3(
-    -(radius*Math.sin(phi)*Math.cos(theta)),
-    radius*Math.cos(phi),
-    radius*Math.sin(phi)*Math.sin(theta)
-  );
+return new THREE.Vector3(
+-(radius*Math.sin(phi)*Math.cos(theta)),
+radius*Math.cos(phi),
+radius*Math.sin(phi)*Math.sin(theta)
+);
 }
-
-/* ADD SATELLITE */
 
 function addSatellite(lat,lon,color=0x00ffff){
 
-  const geo = new THREE.SphereGeometry(0.02,12,12);
+const geo = new THREE.SphereGeometry(0.02,12,12);
+const mat = new THREE.MeshBasicMaterial({color});
 
-  const mat = new THREE.MeshBasicMaterial({
-    color
-  });
+const sat = new THREE.Mesh(geo,mat);
 
-  const sat = new THREE.Mesh(geo,mat);
+sat.userData = {
+lat,
+lon,
+radius:1.35 + Math.random()*0.4,
+speed:0.1 + Math.random()*0.4
+};
 
-  sat.userData = {
-    lat,
-    lon,
-    radius:1.35 + Math.random()*0.4,
-    speed:0.1 + Math.random()*0.4
-  };
-
-  satelliteGroup.add(sat);
-
-  return sat;
+satelliteGroup.add(sat);
+return sat;
 }
-
-/* ADD ASTEROID */
 
 function addAsteroidMarker(lat,lon,hazardous){
 
-  const geo = new THREE.SphereGeometry(0.025,16,16);
+const geo = new THREE.SphereGeometry(0.025,16,16);
 
-  const mat = new THREE.MeshBasicMaterial({
-    color:hazardous ? 0xff3333 : 0x00ff88
-  });
+const mat = new THREE.MeshBasicMaterial({
+color:hazardous ? 0xff3333 : 0x00ff88
+});
 
-  const asteroid = new THREE.Mesh(geo,mat);
+const asteroid = new THREE.Mesh(geo,mat);
 
-  asteroid.position.copy(
-    latLonToVector3(lat,lon,1.05)
-  );
+asteroid.position.copy(latLonToVector3(lat,lon,1.05));
 
-  asteroidGroup.add(asteroid);
+asteroidGroup.add(asteroid);
 
-  /* TRAJECTORY ARC */
+const points = [];
 
-  const points = [];
+const start = latLonToVector3(lat,lon,2.4);
+const end = latLonToVector3(lat,lon,1.05);
 
-  const start = latLonToVector3(lat,lon,2.4);
-  const end = latLonToVector3(lat,lon,1.05);
+for(let i=0;i<=30;i++){
 
-  for(let i=0;i<=30;i++){
+const t = i/30;
 
-    const t = i/30;
+const curve = new THREE.Vector3().lerpVectors(start,end,t);
+curve.multiplyScalar(1 + Math.sin(t*Math.PI)*0.15);
 
-    const curve = new THREE.Vector3().lerpVectors(
-      start,
-      end,
-      t
-    );
-
-    curve.multiplyScalar(1 + Math.sin(t*Math.PI)*0.15);
-
-    points.push(curve);
-  }
-
-  const curveGeo = new THREE.BufferGeometry().setFromPoints(points);
-
-  const curveMat = new THREE.LineBasicMaterial({
-    color:hazardous ? 0xff3333 : 0x00ffaa,
-    transparent:true,
-    opacity:0.4
-  });
-
-  const line = new THREE.Line(curveGeo,curveMat);
-
-  trajectoryGroup.add(line);
+points.push(curve);
 }
 
-/* CREATE SATELLITES */
+const curveGeo = new THREE.BufferGeometry().setFromPoints(points);
 
-for(let i=0;i<120;i++){
+const curveMat = new THREE.LineBasicMaterial({
+color:hazardous ? 0xff3333 : 0x00ffaa,
+transparent:true,
+opacity:0.4
+});
 
-  addSatellite(
-    Math.random()*180 - 90,
-    Math.random()*360 - 180,
-    i % 3 === 0 ? 0x00ff88 : 0x00ccff
-  );
+const line = new THREE.Line(curveGeo,curveMat);
+trajectoryGroup.add(line);
+}
+
+for(let i=0;i<180;i++){
+
+addSatellite(
+Math.random()*180 - 90,
+Math.random()*360 - 180,
+i%3===0 ? 0x00ff88 : 0x00ccff
+);
 }
 
 /* ISS */
 
 const issGeo = new THREE.SphereGeometry(0.035,16,16);
-
-const issMat = new THREE.MeshBasicMaterial({
-  color:0xffffff
-});
-
+const issMat = new THREE.MeshBasicMaterial({color:0xffffff});
 const iss = new THREE.Mesh(issGeo,issMat);
-
 scene.add(iss);
 
-/* ANIMATION */
+/* CAMERA FLY */
+
+let camAngle = 0;
 
 function animate(){
 
-  requestAnimationFrame(animate);
+requestAnimationFrame(animate);
 
-  earth.rotation.y += 0.0015;
-  glow.rotation.y += 0.001;
+camAngle += 0.001;
 
-  orbitalRings.forEach((ring,index)=>{
+camera.position.x = Math.sin(camAngle)*0.3;
+camera.position.y = Math.cos(camAngle)*0.15;
+camera.lookAt(0,0,0);
 
-    ring.rotation.z += 0.0005 * (index+1);
-  });
+earth.rotation.y += 0.0015;
+clouds.rotation.y += 0.0018;
+glow.rotation.y += 0.001;
 
-  satelliteGroup.children.forEach((sat,index)=>{
+moon.position.x = Math.sin(Date.now()*0.0002)*3;
+moon.position.z = Math.cos(Date.now()*0.0002)*3;
 
-    sat.userData.lon += sat.userData.speed * 0.15;
+orbitalRings.forEach((ring,index)=>{
+ring.rotation.z += 0.0005*(index+1);
+});
 
-    sat.position.copy(
-      latLonToVector3(
-        sat.userData.lat,
-        sat.userData.lon,
-        sat.userData.radius
-      )
-    );
-  });
+satelliteGroup.children.forEach(sat=>{
 
-  asteroidGroup.rotation.y += 0.0007;
-  trajectoryGroup.rotation.y += 0.0005;
+sat.userData.lon += sat.userData.speed*0.15;
 
-  renderer.render(scene,camera);
+sat.position.copy(
+latLonToVector3(
+sat.userData.lat,
+sat.userData.lon,
+sat.userData.radius
+)
+);
+
+const trailGeo = new THREE.BufferGeometry().setFromPoints([
+sat.position.clone(),
+sat.position.clone().multiplyScalar(0.95)
+]);
+
+const trail = new THREE.Line(
+trailGeo,
+new THREE.LineBasicMaterial({
+color:0x00ffff,
+transparent:true,
+opacity:0.2
+})
+);
+
+scene.add(trail);
+setTimeout(()=>scene.remove(trail),150);
+});
+
+asteroidGroup.rotation.y += 0.0007;
+trajectoryGroup.rotation.y += 0.0005;
+
+renderer.render(scene,camera);
 }
 
 animate();
 
-window.addEventListener('resize',()=>{
+/* LOCK ON */
 
-  camera.aspect =
-    container.clientWidth/container.clientHeight;
+const lockOn = document.getElementById('lock-on');
 
-  camera.updateProjectionMatrix();
+setInterval(()=>{
+lockOn.style.left = Math.random()*70 + '%';
+lockOn.style.top = Math.random()*70 + '%';
+},3000);
 
-  renderer.setSize(
-    container.clientWidth,
-    container.clientHeight
-  );
-});
+/* AUDIO */
 
-/* =========================================
-   NASA + SPACE DATA
-========================================= */
+const ambience = document.getElementById('ambience');
+const audioBtn = document.getElementById('audio-btn');
 
-const API_KEY = "DEMO_KEY";
+let playing = false;
 
-/* ASTEROIDS */
+audioBtn.onclick = ()=>{
+if(!playing){
+ambience.play();
+playing = true;
+audioBtn.innerHTML = '🔇 MUTE AUDIO';
+} else {
+ambience.pause();
+playing = false;
+audioBtn.innerHTML = '🔊 SYSTEM AUDIO';
+}
+};
+
+/* NASA */
+
+const API_KEY = 'DEMO_KEY';
 
 fetch(`https://api.nasa.gov/neo/rest/v1/feed?api_key=${API_KEY}`)
 .then(r=>r.json())
 .then(data=>{
 
-  const table = document.getElementById('neo-table');
+const table = document.getElementById('neo-table');
 
-  table.innerHTML = `
-    <tr>
-      <th>Name</th>
-      <th>Date</th>
-      <th>Diameter</th>
-      <th>Velocity</th>
-      <th>Miss Distance</th>
-      <th>Status</th>
-    </tr>
-  `;
+let asteroids = [];
+let hazardCount = 0;
 
-  let asteroids = [];
-  let hazardCount = 0;
+for(const [date,objects] of Object.entries(data.near_earth_objects)){
 
-  for(const [date,objects] of Object.entries(data.near_earth_objects)){
+objects.forEach(obj=>{
 
-    objects.forEach(obj=>{
+const hazardous = obj.is_potentially_hazardous_asteroid;
 
-      const hazardous =
-        obj.is_potentially_hazardous_asteroid;
+if(hazardous) hazardCount++;
 
-      if(hazardous) hazardCount++;
+const asteroid = {
+name:obj.name,
+date,
+diameter:obj.estimated_diameter.kilometers.estimated_diameter_max.toFixed(2),
+velocity:parseFloat(
+obj.close_approach_data[0].relative_velocity.kilometers_per_hour
+).toLocaleString(),
+distance:parseFloat(
+obj.close_approach_data[0].miss_distance.kilometers
+).toLocaleString(),
+hazardous
+};
 
-      const asteroid = {
+asteroids.push(asteroid);
 
-        name:obj.name,
-        date,
+addAsteroidMarker(
+Math.random()*180 - 90,
+Math.random()*360 - 180,
+hazardous
+);
+});
+}
 
-        diameter:
-          obj.estimated_diameter.kilometers
-          .estimated_diameter_max
-          .toFixed(2),
+const threat = Math.min(100,Math.floor((hazardCount/asteroids.length)*320));
 
-        velocity:
-          parseFloat(
-            obj.close_approach_data[0]
-            .relative_velocity
-            .kilometers_per_hour
-          ).toLocaleString(),
+const aiConfidence = (Math.random()*18 + 81).toFixed(2);
 
-        distance:
-          parseFloat(
-            obj.close_approach_data[0]
-            .miss_distance
-            .kilometers
-          ).toLocaleString(),
+document.getElementById('ai-prediction').innerHTML =
+`AI Impact Prediction: ${aiConfidence}%`;
 
-        hazardous
-      };
+if(threat > 60){
 
-      asteroids.push(asteroid);
+document.getElementById('global-alert').innerHTML =
+'☄️ HIGH THREAT DETECTED';
+}
 
-      const lat = Math.random()*180 - 90;
-      const lon = Math.random()*360 - 180;
 
-      addAsteroidMarker(lat,lon,hazardous);
-    });
-  }
+document.getElementById('neo-count').innerHTML =
+`Objects: ${asteroids.length}`;
 
-  document.getElementById('neo-count').innerHTML =
-    `Objects: ${asteroids.length}`;
 
-  document.getElementById('hazard-count').innerHTML =
-    `Hazards: ${hazardCount}`;
+document.getElementById('hazard-count').innerHTML =
+`Hazards: ${hazardCount}`;
 
-  const threat =
-    Math.min(
-      100,
-      Math.floor((hazardCount/asteroids.length)*320)
-    );
 
-  document.getElementById('threat-level').style.width =
-    threat + '%';
+document.getElementById('threat-level').style.width =
+threat + '%';
 
-  document.getElementById('threat-text').innerHTML =
-    threat > 60
-    ? 'HIGH ALERT — Elevated orbital threat signatures detected'
-    : 'NORMAL — No critical impact trajectories detected';
 
-  asteroids.slice(0,15).forEach(a=>{
+document.getElementById('threat-text').innerHTML =
+threat > 60
+? 'HIGH ALERT — Elevated orbital threat signatures detected'
+: 'NORMAL — No critical impact trajectories detected';
 
-    table.innerHTML += `
-      <tr>
-        <td>${a.name}</td>
-        <td>${a.date}</td>
-        <td>${a.diameter} km</td>
-        <td>${a.velocity}</td>
-        <td>${a.distance}</td>
-        <td class="${a.hazardous ? 'hazardous':'safe'}">
-          ${a.hazardous ? '⚠ HAZARDOUS':'✓ SAFE'}
-        </td>
-      </tr>
-    `;
-  });
+asteroids.slice(0,15).forEach(a=>{
+
+const row = document.createElement('tr');
+
+row.innerHTML = `
+<td>${a.name}</td>
+<td>${a.date}</td>
+<td>${a.diameter} km</td>
+<td>${a.velocity}</td>
+<td>${a.distance}</td>
+<td class="${a.hazardous ? 'hazardous':'safe'}">
+${a.hazardous ? '⚠ HAZARDOUS':'✓ SAFE'}
+</td>
+`;
+
+
+table.appendChild(row);
+});
 
 });
 
-/* ISS LIVE POSITION */
+/* ISS */
 
 function updateISS(){
 
-  fetch('https://api.wheretheiss.at/v1/satellites/25544')
-  .then(r=>r.json())
-  .then(data=>{
+fetch('https://api.wheretheiss.at/v1/satellites/25544')
+.then(r=>r.json())
+.then(data=>{
 
-    const lat = data.latitude;
-    const lon = data.longitude;
+const lat = data.latitude;
+const lon = data.longitude;
 
-    iss.position.copy(
-      latLonToVector3(lat,lon,1.55)
-    );
+iss.position.copy(latLonToVector3(lat,lon,1.55));
 
-    document.getElementById('iss-position').innerHTML =
-      `ISS Position: ${lat.toFixed(2)}°, ${lon.toFixed(2)}°`;
-  });
+
+document.getElementById('iss-position').innerHTML =
+`ISS Position: ${lat.toFixed(2)}°, ${lon.toFixed(2)}°`;
+});
 }
 
 updateISS();
-
 setInterval(updateISS,5000);
 
-/* ORBITAL OBJECTS */
+/* SATELLITES */
 
 fetch('https://ll.thespacedevs.com/2.2.0/config/launcher/')
 .then(r=>r.json())
 .then(data=>{
 
-  const table = document.getElementById('sat-table');
+const table = document.getElementById('sat-table');
 
-  table.innerHTML = `
-    <tr>
-      <th>#</th>
-      <th>Orbital Object</th>
-    </tr>
-  `;
+const objects = data.results || [];
 
-  const objects = data.results || [];
 
-  document.getElementById('sat-count').innerHTML =
-    `Satellites: ${objects.length}`;
+document.getElementById('sat-count').innerHTML =
+`Satellites: ${objects.length}`;
 
-  objects.slice(0,60).forEach((obj,index)=>{
+objects.slice(0,40).forEach((obj,index)=>{
 
-    table.innerHTML += `
-      <tr>
-        <td>${index+1}</td>
-        <td>${obj.name}</td>
-      </tr>
-    `;
-  });
+const row = document.createElement('tr');
 
-})
-.catch(()=>{
+row.innerHTML = `
+<td>${index+1}</td>
+<td>${obj.name}</td>
+`;
 
-  document.getElementById('sat-table').innerHTML = `
-    <tr>
-      <th>#</th>
-      <th>Orbital Object</th>
-    </tr>
 
-    <tr>
-      <td colspan="2">
-        Orbital feed unavailable
-      </td>
-    </tr>
-  `;
+table.appendChild(row);
+});
 });
 
-/* MARS WEATHER */
+/* MARS */
 
 fetch(`https://api.nasa.gov/insight_weather/?api_key=${API_KEY}&feedtype=json&ver=1.0`)
 .then(r=>r.json())
 .then(data=>{
 
-  const el = document.getElementById('mars-stats');
+const el = document.getElementById('mars-stats');
+const sols = data.sol_keys || [];
 
-  const sols = data.sol_keys || [];
+if(!sols.length){
 
-  if(!sols.length){
+el.innerHTML = 'Mars InSight mission completed — archived telemetry only.';
+return;
+}
 
-    el.innerHTML =
-      'Mars InSight mission completed — no live weather available.';
+const latest = data[sols[sols.length-1]];
 
-    return;
-  }
+el.innerHTML = `
+<div class="stats-row">
 
-  const latest = data[sols[sols.length-1]];
+<div class="stat-box">
+<div class="stat">${latest?.AT?.av ?? 'N/A'}°C</div>
+<div class="stat-label">AVG TEMP</div>
+</div>
 
-  el.innerHTML = `
-    <div class="stats-row">
+<div class="stat-box">
+<div class="stat">${latest?.AT?.mn ?? 'N/A'}°C</div>
+<div class="stat-label">MIN TEMP</div>
+</div>
 
-      <div class="stat-box">
-        <div class="stat">${latest?.AT?.av ?? 'N/A'}°C</div>
-        <div class="stat-label">AVG TEMP</div>
-      </div>
+<div class="stat-box">
+<div class="stat">${latest?.AT?.mx ?? 'N/A'}°C</div>
+<div class="stat-label">MAX TEMP</div>
+</div>
 
-      <div class="stat-box">
-        <div class="stat">${latest?.AT?.mn ?? 'N/A'}°C</div>
-        <div class="stat-label">MIN TEMP</div>
-      </div>
+</div>
+`;
 
-      <div class="stat-box">
-        <div class="stat">${latest?.AT?.mx ?? 'N/A'}°C</div>
-        <div class="stat-label">MAX TEMP</div>
-      </div>
+const temps = sols.map(s=>data[s]?.AT?.av);
 
-      <div class="stat-box">
-        <div class="stat">${latest?.PRE?.av ?? 'N/A'} Pa</div>
-        <div class="stat-label">PRESSURE</div>
-      </div>
+Plotly.newPlot(
+'mars-chart',
+[{
+x:sols.map(s=>'Sol '+s),
+y:temps,
+type:'scatter',
+mode:'lines+markers',
+line:{color:'#ff4444'},
+marker:{color:'#ff4444'}
+}],
+{
+paper_bgcolor:'transparent',
+plot_bgcolor:'transparent',
+font:{color:'#888',family:'Courier New'},
+height:220
+}
+);
+});
 
-    </div>
-  `;
+/* EARTHQUAKES */
 
-  const temps = sols.map(s=>data[s]?.AT?.av);
+fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson')
+.then(r=>r.json())
+.then(data=>{
 
-  Plotly.newPlot(
-    'mars-chart',
-    [{
-      x:sols.map(s=>'Sol '+s),
-      y:temps,
-      type:'scatter',
-      mode:'lines+markers',
-      line:{color:'#ff4444'},
-      marker:{color:'#ff4444'}
-    }],
-    {
-      paper_bgcolor:'transparent',
-      plot_bgcolor:'transparent',
-      font:{
-        color:'#888',
-        family:'Courier New'
-      },
-      xaxis:{
-        gridcolor:'#ffffff11'
-      },
-      yaxis:{
-        gridcolor:'#ffffff11',
-        title:'°C'
-      },
-      margin:{
-        t:10,
-        b:40,
-        l:50,
-        r:10
-      },
-      height:220
-    }
-  );
+const table = document.getElementById('quake-table');
 
+(data.features || []).slice(0,10).forEach(q=>{
+
+const row = document.createElement('tr');
+
+row.innerHTML = `
+<td>${q.properties.mag}</td>
+<td>${q.properties.place}</td>
+`;
+
+
+table.appendChild(row);
+});
+});
+
+/* ROCKETS */
+
+fetch('https://ll.thespacedevs.com/2.2.0/launch/upcoming/')
+.then(r=>r.json())
+.then(data=>{
+
+const launch = data.results[0];
+
+if(!launch) return;
+
+const launchEl = document.getElementById('launch-info');
+
+launchEl.innerHTML = `
+<div class="stats-row">
+
+<div class="stat-box">
+<div class="stat">🚀</div>
+<div class="stat-label">${launch.name}</div>
+</div>
+
+<div class="stat-box">
+<div class="stat">📍</div>
+<div class="stat-label">${launch.pad.location.name}</div>
+</div>
+
+<div class="stat-box">
+<div class="stat">🕒</div>
+<div class="stat-label">${new Date(launch.net).toLocaleString()}</div>
+</div>
+
+</div>
+`;
+});
+
+window.addEventListener('resize',()=>{
+
+resizeStars();
+
+camera.aspect = container.clientWidth/container.clientHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(container.clientWidth,container.clientHeight);
 });
 
 </script>
