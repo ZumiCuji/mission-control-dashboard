@@ -1,124 +1,707 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Mission Control Dashboard</title>
+
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+  <!-- 3D Globe -->
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0a0a1a; color: #00ff88; font-family: 'Courier New', monospace; padding: 20px; }
-    h1 { text-align: center; font-size: 2em; margin-bottom: 30px; color: #00ff88; text-shadow: 0 0 20px #00ff88; letter-spacing: 4px; }
-    h2 { color: #00ccff; margin-bottom: 15px; letter-spacing: 2px; font-size: 1.1em; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-    .panel { background: #0f0f2a; border: 1px solid #00ff8844; border-radius: 8px; padding: 20px; }
-    .panel.full { grid-column: 1 / -1; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
-    th { color: #00ccff; border-bottom: 1px solid #00ff8844; padding: 8px; text-align: left; }
-    td { padding: 8px; border-bottom: 1px solid #ffffff11; }
-    .hazardous { color: #ff4444; }
-    .safe { color: #00ff88; }
-    .loading { color: #666; font-style: italic; }
-    .stat { font-size: 2em; color: #00ff88; text-shadow: 0 0 10px #00ff88; }
-    .stat-label { font-size: 0.8em; color: #888; margin-top: 5px; }
-    .stats-row { display: flex; gap: 20px; flex-wrap: wrap; }
-    .stat-box { flex: 1; background: #0a0a1a; border-radius: 6px; padding: 15px; text-align: center; min-width: 120px; }
-    @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } .panel.full { grid-column: 1; } }
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+    }
+
+    body{
+      background:#050510;
+      color:#00ff88;
+      font-family:'Courier New', monospace;
+      overflow-x:hidden;
+      min-height:100vh;
+      padding:20px;
+      position:relative;
+    }
+
+    canvas#starfield{
+      position:fixed;
+      top:0;
+      left:0;
+      width:100%;
+      height:100%;
+      z-index:-2;
+    }
+
+    .glow-bg{
+      position:fixed;
+      width:100%;
+      height:100%;
+      top:0;
+      left:0;
+      background:
+        radial-gradient(circle at center, rgba(0,255,180,0.08), transparent 40%),
+        radial-gradient(circle at top, rgba(0,120,255,0.08), transparent 30%);
+      z-index:-1;
+    }
+
+    h1{
+      text-align:center;
+      font-size:2.6em;
+      margin-bottom:25px;
+      color:#00ffcc;
+      text-shadow:0 0 20px #00ffcc;
+      letter-spacing:5px;
+    }
+
+    h2{
+      color:#00ccff;
+      margin-bottom:15px;
+      letter-spacing:2px;
+      font-size:1em;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:20px;
+      margin-top:20px;
+    }
+
+    .panel{
+      background:rgba(10,15,35,0.82);
+      border:1px solid rgba(0,255,170,0.2);
+      border-radius:14px;
+      padding:20px;
+      backdrop-filter:blur(10px);
+      box-shadow:
+        0 0 30px rgba(0,255,150,0.05),
+        inset 0 0 20px rgba(255,255,255,0.02);
+    }
+
+    .panel.full{
+      grid-column:1 / -1;
+    }
+
+    #globe-container{
+      width:100%;
+      height:500px;
+      border-radius:12px;
+      overflow:hidden;
+      position:relative;
+    }
+
+    .hud{
+      position:absolute;
+      top:20px;
+      left:20px;
+      z-index:10;
+      background:rgba(0,0,0,0.45);
+      border:1px solid rgba(0,255,255,0.2);
+      padding:12px;
+      border-radius:10px;
+      color:#00ffee;
+      font-size:0.9em;
+      backdrop-filter:blur(8px);
+    }
+
+    .threat-container{
+      margin-top:20px;
+    }
+
+    .threat-bar{
+      width:100%;
+      height:24px;
+      background:#111;
+      border-radius:20px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,0.15);
+      position:relative;
+    }
+
+    .threat-level{
+      height:100%;
+      width:0%;
+      background:linear-gradient(90deg,#00ff88,#ffee00,#ff3333);
+      box-shadow:0 0 20px rgba(255,50,50,0.6);
+      transition:width 2s ease;
+      animation:pulse 1.4s infinite;
+    }
+
+    @keyframes pulse{
+      0%{filter:brightness(1);}
+      50%{filter:brightness(1.5);}
+      100%{filter:brightness(1);}
+    }
+
+    .threat-label{
+      margin-top:8px;
+      font-size:0.9em;
+      color:#ccc;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:0.85em;
+    }
+
+    th{
+      color:#00ccff;
+      border-bottom:1px solid rgba(0,255,170,0.2);
+      padding:8px;
+      text-align:left;
+    }
+
+    td{
+      padding:8px;
+      border-bottom:1px solid rgba(255,255,255,0.06);
+    }
+
+    .hazardous{
+      color:#ff5555;
+      text-shadow:0 0 10px #ff0000;
+    }
+
+    .safe{
+      color:#00ff88;
+    }
+
+    .loading{
+      color:#888;
+      font-style:italic;
+    }
+
+    .stats-row{
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+    }
+
+    .stat-box{
+      flex:1;
+      min-width:120px;
+      text-align:center;
+      padding:15px;
+      border-radius:10px;
+      background:#091020;
+      border:1px solid rgba(0,255,170,0.1);
+    }
+
+    .stat{
+      font-size:2em;
+      color:#00ffcc;
+      text-shadow:0 0 15px #00ffcc;
+    }
+
+    .stat-label{
+      margin-top:6px;
+      font-size:0.8em;
+      color:#888;
+    }
+
+    @media(max-width:900px){
+      .grid{
+        grid-template-columns:1fr;
+      }
+
+      .panel.full{
+        grid-column:1;
+      }
+
+      #globe-container{
+        height:400px;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>⚡ MISSION CONTROL</h1>
 
-  <div class="grid">
-    <div class="panel full">
-      <h2>🌍 NEAR EARTH OBJECTS — ACTIVE TRACKING</h2>
-      <table id="neo-table">
-        <tr><th>Name</th><th>Date</th><th>Diameter (km)</th><th>Velocity (km/h)</th><th>Miss Distance (km)</th><th>Status</th></tr>
-        <tr><td colspan="6" class="loading">Fetching asteroid data...</td></tr>
-      </table>
-    </div>
+<canvas id="starfield"></canvas>
+<div class="glow-bg"></div>
 
-    <div class="panel">
-      <h2>🔴 MARS WEATHER — INSIGHT LANDER</h2>
-      <div id="mars-stats" class="loading">Fetching Mars data...</div>
-      <div id="mars-chart" style="margin-top:15px;"></div>
-    </div>
+<h1>⚡ MISSION CONTROL</h1>
 
-    <div class="panel">
-      <h2>🛰️ TRACKED ORBITAL OBJECTS</h2>
-      <table id="sat-table">
-        <tr><th>#</th><th>Object Name</th></tr>
-        <tr><td colspan="2" class="loading">Fetching satellite data...</td></tr>
-      </table>
+<div class="panel full">
+  <h2>🌍 PLANETARY DEFENSE VISUALIZATION</h2>
+
+  <div id="globe-container">
+    <div class="hud">
+      <div>☄️ ACTIVE NEO TRACKING</div>
+      <div id="neo-count">Objects: --</div>
+      <div id="hazard-count">Hazards: --</div>
     </div>
   </div>
 
-  <script>
-    const API_KEY = "jWG5rblhsL3PoLH39BU5iNrTwBXPrwMXL6CV0bvU";
+  <div class="threat-container">
+    <h2>☄️ ASTEROID THREAT METER</h2>
+    <div class="threat-bar">
+      <div class="threat-level" id="threat-level"></div>
+    </div>
+    <div class="threat-label" id="threat-text">
+      Calculating orbital risk...
+    </div>
+  </div>
+</div>
 
-    // NEO
-    fetch(`https://api.nasa.gov/neo/rest/v1/feed?api_key=${API_KEY}`)
-      .then(r => r.json()).then(data => {
-        const table = document.getElementById("neo-table");
-        table.innerHTML = `<tr><th>Name</th><th>Date</th><th>Diameter (km)</th><th>Velocity (km/h)</th><th>Miss Distance (km)</th><th>Status</th></tr>`;
-        let asteroids = [];
-        for (const [date, objects] of Object.entries(data.near_earth_objects)) {
-          objects.forEach(obj => {
-            asteroids.push({
-              name: obj.name, date,
-              diameter: obj.estimated_diameter.kilometers.estimated_diameter_max.toFixed(2),
-              velocity: parseFloat(obj.close_approach_data[0].relative_velocity.kilometers_per_hour).toLocaleString(),
-              distance: parseFloat(obj.close_approach_data[0].miss_distance.kilometers).toLocaleString(),
-              hazardous: obj.is_potentially_hazardous_asteroid
-            });
-          });
-        }
-        asteroids.slice(0, 15).forEach(a => {
-          table.innerHTML += `<tr>
-            <td>${a.name}</td><td>${a.date}</td><td>${a.diameter}</td>
-            <td>${a.velocity}</td><td>${a.distance}</td>
-            <td class="${a.hazardous ? 'hazardous' : 'safe'}">${a.hazardous ? '⚠ HAZARDOUS' : '✓ SAFE'}</td>
-          </tr>`;
-        });
+<div class="grid">
+
+  <div class="panel full">
+    <h2>🌍 NEAR EARTH OBJECTS — ACTIVE TRACKING</h2>
+
+    <table id="neo-table">
+      <tr>
+        <th>Name</th>
+        <th>Date</th>
+        <th>Diameter (km)</th>
+        <th>Velocity (km/h)</th>
+        <th>Miss Distance (km)</th>
+        <th>Status</th>
+      </tr>
+
+      <tr>
+        <td colspan="6" class="loading">
+          Fetching asteroid data...
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>🔴 MARS WEATHER — INSIGHT LANDER</h2>
+
+    <div id="mars-stats" class="loading">
+      Fetching Mars data...
+    </div>
+
+    <div id="mars-chart" style="margin-top:15px;"></div>
+  </div>
+
+  <div class="panel">
+    <h2>🛰️ TRACKED ORBITAL OBJECTS</h2>
+
+    <table id="sat-table">
+      <tr>
+        <th>#</th>
+        <th>Object Name</th>
+      </tr>
+
+      <tr>
+        <td colspan="2" class="loading">
+          Fetching satellite data...
+        </td>
+      </tr>
+    </table>
+  </div>
+
+</div>
+
+<script>
+/* ===========================
+   STARFIELD PARTICLES
+=========================== */
+
+const starCanvas = document.getElementById('starfield');
+const starCtx = starCanvas.getContext('2d');
+
+let stars = [];
+
+function resizeStars(){
+  starCanvas.width = window.innerWidth;
+  starCanvas.height = window.innerHeight;
+}
+
+resizeStars();
+
+for(let i=0;i<700;i++){
+  stars.push({
+    x:Math.random()*window.innerWidth,
+    y:Math.random()*window.innerHeight,
+    z:Math.random()*2,
+    size:Math.random()*2
+  });
+}
+
+function animateStars(){
+  starCtx.clearRect(0,0,starCanvas.width,starCanvas.height);
+
+  stars.forEach(s=>{
+    s.y += s.z;
+
+    if(s.y > window.innerHeight){
+      s.y = 0;
+      s.x = Math.random()*window.innerWidth;
+    }
+
+    starCtx.beginPath();
+    starCtx.arc(s.x,s.y,s.size,0,Math.PI*2);
+    starCtx.fillStyle = `rgba(255,255,255,${0.4+s.z/2})`;
+    starCtx.fill();
+  });
+
+  requestAnimationFrame(animateStars);
+}
+
+animateStars();
+
+window.addEventListener('resize', resizeStars);
+
+/* ===========================
+   THREE.JS GLOBE
+=========================== */
+
+const container = document.getElementById('globe-container');
+
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(
+  60,
+  container.clientWidth / container.clientHeight,
+  0.1,
+  1000
+);
+
+camera.position.z = 4;
+
+const renderer = new THREE.WebGLRenderer({
+  antialias:true,
+  alpha:true
+});
+
+renderer.setSize(container.clientWidth, container.clientHeight);
+container.appendChild(renderer.domElement);
+
+/* Earth */
+const geometry = new THREE.SphereGeometry(1,64,64);
+
+const texture = new THREE.TextureLoader().load(
+  'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'
+);
+
+const material = new THREE.MeshStandardMaterial({
+  map:texture,
+  emissive:new THREE.Color(0x002244),
+  emissiveIntensity:0.6
+});
+
+const earth = new THREE.Mesh(geometry,material);
+scene.add(earth);
+
+/* Glow */
+const glowGeometry = new THREE.SphereGeometry(1.08,64,64);
+
+const glowMaterial = new THREE.MeshBasicMaterial({
+  color:0x00aaff,
+  transparent:true,
+  opacity:0.15
+});
+
+const glow = new THREE.Mesh(glowGeometry,glowMaterial);
+scene.add(glow);
+
+/* Orbital Rings */
+for(let i=0;i<3;i++){
+  const ringGeo = new THREE.TorusGeometry(
+    1.5 + i*0.18,
+    0.003,
+    16,
+    200
+  );
+
+  const ringMat = new THREE.MeshBasicMaterial({
+    color:0x00ffff,
+    transparent:true,
+    opacity:0.35
+  });
+
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+
+  ring.rotation.x = Math.random()*Math.PI;
+  ring.rotation.y = Math.random()*Math.PI;
+
+  scene.add(ring);
+}
+
+/* Lights */
+const light = new THREE.PointLight(0xffffff,2);
+light.position.set(5,3,5);
+scene.add(light);
+
+scene.add(new THREE.AmbientLight(0x334455));
+
+/* Asteroid markers */
+const asteroidGroup = new THREE.Group();
+scene.add(asteroidGroup);
+
+function latLongToVector3(lat, lon, radius){
+  const phi = (90-lat)*(Math.PI/180);
+  const theta = (lon+180)*(Math.PI/180);
+
+  const x = -(radius*Math.sin(phi)*Math.cos(theta));
+  const z = (radius*Math.sin(phi)*Math.sin(theta));
+  const y = (radius*Math.cos(phi));
+
+  return new THREE.Vector3(x,y,z);
+}
+
+function addAsteroidMarker(lat, lon, hazardous){
+  const markerGeo = new THREE.SphereGeometry(0.025,16,16);
+
+  const markerMat = new THREE.MeshBasicMaterial({
+    color: hazardous ? 0xff3333 : 0x00ff88
+  });
+
+  const marker = new THREE.Mesh(markerGeo, markerMat);
+
+  marker.position.copy(
+    latLongToVector3(lat, lon, 1.03)
+  );
+
+  asteroidGroup.add(marker);
+}
+
+/* Animation loop */
+function animate(){
+  requestAnimationFrame(animate);
+
+  earth.rotation.y += 0.0015;
+  glow.rotation.y += 0.001;
+
+  asteroidGroup.rotation.y += 0.001;
+
+  renderer.render(scene,camera);
+}
+
+animate();
+
+window.addEventListener('resize',()=>{
+  camera.aspect = container.clientWidth/container.clientHeight;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(
+    container.clientWidth,
+    container.clientHeight
+  );
+});
+
+/* ===========================
+   NASA APIs
+=========================== */
+
+const API_KEY = "DEMO_KEY";
+
+/* NEO DATA */
+fetch(`https://api.nasa.gov/neo/rest/v1/feed?api_key=${API_KEY}`)
+.then(r=>r.json())
+.then(data=>{
+
+  const table = document.getElementById("neo-table");
+
+  table.innerHTML = `
+    <tr>
+      <th>Name</th>
+      <th>Date</th>
+      <th>Diameter (km)</th>
+      <th>Velocity (km/h)</th>
+      <th>Miss Distance (km)</th>
+      <th>Status</th>
+    </tr>
+  `;
+
+  let asteroids = [];
+  let hazardCount = 0;
+
+  for(const [date,objects] of Object.entries(data.near_earth_objects)){
+
+    objects.forEach(obj=>{
+
+      const hazardous = obj.is_potentially_hazardous_asteroid;
+
+      if(hazardous) hazardCount++;
+
+      asteroids.push({
+        name:obj.name,
+        date,
+        diameter:obj.estimated_diameter.kilometers.estimated_diameter_max.toFixed(2),
+        velocity:parseFloat(
+          obj.close_approach_data[0].relative_velocity.kilometers_per_hour
+        ).toLocaleString(),
+
+        distance:parseFloat(
+          obj.close_approach_data[0].miss_distance.kilometers
+        ).toLocaleString(),
+
+        hazardous
       });
 
-    // Mars
-    fetch(`https://api.nasa.gov/insight_weather/?api_key=${API_KEY}&feedtype=json&ver=1.0`)
-      .then(r => r.json()).then(data => {
-        const el = document.getElementById("mars-stats");
-        const sols = data.sol_keys || [];
-        if (!sols.length) { el.innerHTML = "Mars InSight mission has ended — no live data available."; return; }
-        const latest = data[sols[sols.length - 1]];
-        el.innerHTML = `
-          <div class="stats-row">
-            <div class="stat-box"><div class="stat">${latest?.AT?.av ?? "N/A"}°C</div><div class="stat-label">AVG TEMP</div></div>
-            <div class="stat-box"><div class="stat">${latest?.AT?.mn ?? "N/A"}°C</div><div class="stat-label">MIN TEMP</div></div>
-            <div class="stat-box"><div class="stat">${latest?.AT?.mx ?? "N/A"}°C</div><div class="stat-label">MAX TEMP</div></div>
-            <div class="stat-box"><div class="stat">${latest?.PRE?.av ?? "N/A"} Pa</div><div class="stat-label">PRESSURE</div></div>
-          </div>`;
-        const temps = sols.map(s => data[s]?.AT?.av);
-        Plotly.newPlot("mars-chart", [{
-          x: sols.map(s => "Sol " + s), y: temps, type: "scatter", mode: "lines+markers",
-          line: { color: "#ff4444" }, marker: { color: "#ff4444" }
-        }], {
-          paper_bgcolor: "transparent", plot_bgcolor: "transparent",
-          font: { color: "#888", family: "Courier New" },
-          xaxis: { gridcolor: "#ffffff11" }, yaxis: { gridcolor: "#ffffff11", title: "°C" },
-          margin: { t: 10, b: 40, l: 50, r: 10 }, height: 200
-        });
-      });
+      /* Randomized approach positions */
+      const lat = Math.random()*180 - 90;
+      const lon = Math.random()*360 - 180;
 
-    // Satellites
-    fetch("https://celestrak.org/pub/TLE/catalog.txt")
-      .then(r => r.text()).then(text => {
-        const lines = text.trim().split("\n");
-        const table = document.getElementById("sat-table");
-        table.innerHTML = `<tr><th>#</th><th>Object Name</th></tr>`;
-        for (let i = 0; i < Math.min(60, lines.length - 2); i += 3) {
-          table.innerHTML += `<tr><td>${i/3 + 1}</td><td>${lines[i].trim()}</td></tr>`;
-        }
-      }).catch(() => {
-        document.getElementById("sat-table").innerHTML = `<tr><th>#</th><th>Object Name</th></tr><tr><td colspan="2">Satellite data unavailable (CORS restriction)</td></tr>`;
-      });
-  </script>
+      addAsteroidMarker(lat,lon,hazardous);
+    });
+  }
+
+  document.getElementById("neo-count").innerHTML =
+    `Objects: ${asteroids.length}`;
+
+  document.getElementById("hazard-count").innerHTML =
+    `Hazards: ${hazardCount}`;
+
+  const threatPercent = Math.min(
+    100,
+    Math.floor((hazardCount / asteroids.length) * 300)
+  );
+
+  document.getElementById("threat-level").style.width =
+    threatPercent + "%";
+
+  document.getElementById("threat-text").innerHTML =
+    `Threat Index: ${threatPercent}% — ${
+      threatPercent > 60
+      ? "Elevated orbital risk detected"
+      : "Normal monitoring status"
+    }`;
+
+  asteroids.slice(0,15).forEach(a=>{
+
+    table.innerHTML += `
+      <tr>
+        <td>${a.name}</td>
+        <td>${a.date}</td>
+        <td>${a.diameter}</td>
+        <td>${a.velocity}</td>
+        <td>${a.distance}</td>
+        <td class="${a.hazardous ? 'hazardous':'safe'}">
+          ${a.hazardous ? '⚠ HAZARDOUS':'✓ SAFE'}
+        </td>
+      </tr>
+    `;
+  });
+});
+
+/* MARS WEATHER */
+fetch(`https://api.nasa.gov/insight_weather/?api_key=${API_KEY}&feedtype=json&ver=1.0`)
+.then(r=>r.json())
+.then(data=>{
+
+  const el = document.getElementById("mars-stats");
+  const sols = data.sol_keys || [];
+
+  if(!sols.length){
+    el.innerHTML =
+      "Mars InSight mission has ended — no live data available.";
+    return;
+  }
+
+  const latest = data[sols[sols.length - 1]];
+
+  el.innerHTML = `
+    <div class="stats-row">
+
+      <div class="stat-box">
+        <div class="stat">${latest?.AT?.av ?? "N/A"}°C</div>
+        <div class="stat-label">AVG TEMP</div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat">${latest?.AT?.mn ?? "N/A"}°C</div>
+        <div class="stat-label">MIN TEMP</div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat">${latest?.AT?.mx ?? "N/A"}°C</div>
+        <div class="stat-label">MAX TEMP</div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat">${latest?.PRE?.av ?? "N/A"} Pa</div>
+        <div class="stat-label">PRESSURE</div>
+      </div>
+
+    </div>
+  `;
+
+  const temps = sols.map(s=>data[s]?.AT?.av);
+
+  Plotly.newPlot("mars-chart",[{
+    x:sols.map(s=>"Sol "+s),
+    y:temps,
+    type:"scatter",
+    mode:"lines+markers",
+    line:{color:"#ff4444"},
+    marker:{color:"#ff4444"}
+  }],{
+    paper_bgcolor:"transparent",
+    plot_bgcolor:"transparent",
+    font:{
+      color:"#888",
+      family:"Courier New"
+    },
+    xaxis:{
+      gridcolor:"#ffffff11"
+    },
+    yaxis:{
+      gridcolor:"#ffffff11",
+      title:"°C"
+    },
+    margin:{
+      t:10,
+      b:40,
+      l:50,
+      r:10
+    },
+    height:220
+  });
+
+});
+
+/* SATELLITES */
+fetch("https://celestrak.org/pub/TLE/catalog.txt")
+.then(r=>r.text())
+.then(text=>{
+
+  const lines = text.trim().split("\n");
+
+  const table = document.getElementById("sat-table");
+
+  table.innerHTML = `
+    <tr>
+      <th>#</th>
+      <th>Object Name</th>
+    </tr>
+  `;
+
+  for(let i=0;i<Math.min(60,lines.length-2);i+=3){
+
+    table.innerHTML += `
+      <tr>
+        <td>${i/3 + 1}</td>
+        <td>${lines[i].trim()}</td>
+      </tr>
+    `;
+  }
+
+})
+.catch(()=>{
+
+  document.getElementById("sat-table").innerHTML = `
+    <tr>
+      <th>#</th>
+      <th>Object Name</th>
+    </tr>
+
+    <tr>
+      <td colspan="2">
+        Satellite data unavailable (CORS restriction)
+      </td>
+    </tr>
+  `;
+});
+</script>
+
 </body>
 </html>
